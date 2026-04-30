@@ -96,5 +96,17 @@ uint8_t i2c_master_recieve(uint8_t addr) {
 
 int main() {
     i2c_init();
-    
+    uint8_t sensor_data;
+
+    while(1) {
+        i2c_master_write(0x18, 0x24);
+
+        _delay_ms(10);
+
+        sensor_data = i2c_master_recieve(0x18);
+
+        // going to write functionality to process the data
+
+        _delay_ms(500); // - to poll every half second
+    }
 }
