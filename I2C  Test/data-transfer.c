@@ -7,15 +7,7 @@
 #define SCL_PIN 3
 
 void i2c_init()  {
-    /*|= is the bitwise or operation*/
-    // set sda and scl as outputs
-    //DDRB is the data direction, 0 is input 1 is output
-    DDRB |= (1 << SDA_PIN) | (1 << SCL_PIN); // Passes in 0000 1100 into the microncontroller which turns on pin 2, 3 to output
-    // sets sda and scl as high
-    // Port B output register, 0 and 1 are based off of if you want it to give high or low voltage
-    // This is the default before data communication
-    PORTB |= (1 << SDA_PIN) | (1 << SCL_PIN);
-    // sets prescaler to one which means the clock is determined by twbr register
+    // Pins are handeled by TWI library
     TWSR = 0;
     TWBR = 0x48; // Sets clock to 100kHz, standard i2c communication
 
@@ -23,7 +15,7 @@ void i2c_init()  {
 
 void i2c_master_write(uint8_t addr, uint8_t data) {
     // Code from the official documentation for the processor
-    TWCR = (1<<TWINT)|(1<<TWSTA)|(1<<TWEN) // Sending Start Condition
+    TWCR = (1<<TWINT)|(1<<TWSTA)|(1<<TWEN); // Sending Start Condition
     // Waiting for the TWINT Flag (hardware)
     while (!(TWCR & (1<<TWINT)));
     // Send address and write bit
@@ -48,7 +40,7 @@ void i2c_master_write(uint8_t addr, uint8_t data) {
     TWCR = (1<<TWINT)|(1<<TWEN)|(1<<TWSTO);
 }
 
-uint8_t i2c_master_send(uint8_t addr) {
+uint8_t i2c_master_recieve(uint8_t addr) {
     // Data to recieve
     uint8_t data;
     // Startup logic from i2c_master_write
@@ -64,9 +56,9 @@ uint8_t i2c_master_send(uint8_t addr) {
 
     // turns on listening from the slave
     TWCR = (1<<TWINT) | (1<<TWEN);
-    while (!(TWCR & (1<<TWINT)))
+    while (!(TWCR & (1<<TWINT)));
     // Changed to master reciever
-    if ((TWSR & 0xF8)!= MR_DATA_ACK) ERROR();
+    if ((TWSR & 0xF8)!= MR_DATA_NACK) ERROR();
 
     data = TWDR;
 
