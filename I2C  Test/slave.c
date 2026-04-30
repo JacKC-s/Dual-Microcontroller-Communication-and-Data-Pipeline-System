@@ -15,6 +15,7 @@ void i2c_init(uint8_t addr)  {
 }
 
 void send_to_master(uint8_t data) {
+    uint8_t checksum = ~data; // checksum logic
     // Starts listening for addressing by the master
     while (!(TWCR & (1<<TWINT)));
     if ((TWSR & 0xF8) != TW_ST_SLA_ACK) ERROR();
@@ -24,6 +25,13 @@ void send_to_master(uint8_t data) {
     TWCR = (1<<TWINT)|(1<<TWEA)|(1<<TWEN);
     // waits for the data transfer to be successful
     while (!(TWCR & (1 << TWINT)));
+
+    // sending the checksum
+    if ((TWSR & 0xF8) == TW_ST_SLA_ACK) {
+        TWDR = checksum;
+        TWCR = (1<<TWINT)|(1<<TWEA)|(1<<TWEN);
+        while (!(TWCR & (1 << TWINT)));
+    }
 }
 
 uint8_t recieve_master_data() {
