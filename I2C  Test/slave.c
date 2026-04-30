@@ -27,7 +27,6 @@ void send_to_master(uint8_t data) {
 }
 
 uint8_t recieve_master_data() {
-    uint8_t data;
     // initializes the data transfer
     while (!(TWCR & (1<<TWINT)));
     // Checks if in data reception mode
@@ -40,3 +39,29 @@ uint8_t recieve_master_data() {
     return TWDR;
 }
 
+// We will simulate a sensor by making it return random data
+uint8_t readsenor() {
+    // Generate a random hex value between 0x00 and 0xFF
+    return (uint8_t)(rand() % 256);
+}
+
+int main() {
+    // Initializes slave
+    i2c_init(0x18);
+
+    while (1) {
+        // wait for activity
+        while(!(TWCR & (1 << TWINT)));
+
+        uint8_t status = (TWSR & 0xF8);
+
+        if (status == TW_SR_SLA_ACK) {
+            uint8_t incoming = recieve_master_data();
+        } else if (status == TW_ST_SLA_ACK) {
+            send_to_master(readsenor()); // sends random hex value back
+        }
+
+        // Resets TWCR for next condition
+        TWCR = (1 << TWINT) | (1 << TWEN) | (1 << TWEA);
+    }
+}
