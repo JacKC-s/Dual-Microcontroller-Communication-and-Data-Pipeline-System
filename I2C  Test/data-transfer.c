@@ -3,6 +3,7 @@
 #include <util/delay.h>
 #include <util/twi.h>
 
+#define F_CPU 16000000UL //Defined cpu frequency
 #define SDA_PIN 2
 #define SCL_PIN 3
 #define MAX_RETRIES 5
@@ -12,6 +13,28 @@ void i2c_init()  {
     TWSR = 0;
     TWBR = 0x48; // Sets clock to 100kHz, standard i2c communication
 
+}
+
+// Found an example of uart
+void uart_init(uint32_t baud) {
+    // divider used for the baud rate clock, gets the speed for computer and arduino
+    uint16_t ubrrvalue = (F_CPU / (16 * baud) - 1);
+    UBRR0H = (uint8_t)(ubrr_value >> 8); // shifts 8 bits to the right, stores to high register 
+    UBRR0L = (uint8_t)ubrr_value; // Stores ubrrvalue into the low register
+
+    // Enable transmitter, UCSR0B is the control register TXEN0 is the enable register
+    UCSR0B = (1 << TXEN0);
+    // Set frame format: 8 data bits, 1 stop bit
+    // UCSR0C is the second control register; UCSZ01 and UCZ00 char size and word length. 1 and 1 is 8bit
+    UCSR0C = (1 << UCSZ01) | (1 << UCSZ00);
+}
+
+
+void uart_putchar(char data) {
+    // Wait for empty transmit buffer; UCSR0A is the status register and UDRE0 is the data register empty
+    while (!(UCSR0A & (1 << UDRE0)));
+    // Put data into buffer, sends the data; UDR0 is the data register
+    UDR0 = data;
 }
 
 uint8_t validate_checksum(uint8_t data) {
@@ -96,6 +119,7 @@ uint8_t i2c_master_recieve(uint8_t addr) {
 
 int main() {
     i2c_init();
+    uart_init(9600); // Enabled for serial communication, same as arduino ide script
     uint8_t sensor_data;
 
     while(1) {
@@ -104,6 +128,8 @@ int main() {
         _delay_ms(10);
 
         sensor_data = i2c_master_recieve(0x18);
+
+        uart_putchar(sensor_data);
 
         // going to write functionality to process the data
 
