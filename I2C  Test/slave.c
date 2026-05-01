@@ -17,10 +17,8 @@ void i2c_init(uint8_t addr)  {
 
 void send_to_master(uint8_t data) {
     uint8_t checksum = ~data; // checksum logic
-    // Starts listening for addressing by the master
-    while (!(TWCR & (1<<TWINT)));
-    if ((TWSR & 0xF8) != TW_ST_SLA_ACK) ERROR();
-
+    
+    // Already at TW_ST_SLA_ACK because initalization function started it
     TWDR = data;
     // initializes the data transfer
     TWCR = (1<<TWINT)|(1<<TWEA)|(1<<TWEN);
@@ -41,7 +39,9 @@ uint8_t recieve_master_data() {
     while (!(TWCR & (1 << TWINT)));
 
     // Checks if in data reception mode
-    if ((TWSR & 0xF8) != TW_SR_DATA_REC_ACK) ERROR();
+    if ((TWSR & 0xF8) != TW_SR_DATA_ACK) {
+        return 0;
+    }
 
     return TWDR;
 }
@@ -71,12 +71,13 @@ uint8_t readsensor() {
   uint16_t value = read_adc();
   
   // Shifting 2 bits to the right during conversion
-  return (uint8_t)(value >> 2)
+  return (uint8_t)(value >> 2);
 }
 
 int main() {
     // Initializes slave
     i2c_init(0x18);
+    adc_init();
     uint8_t command = 0;
 
     while (1) {
@@ -92,6 +93,9 @@ int main() {
             if (command == 0x24){
                 send_to_master(readsensor()); // Sends photoresistor level back
             }
+        } else {
+            // clear flag for reduncancy
+            TWCR = (1 << TWINT) | (1 << TWEA) | (1 << TWEN);
         }
 
         // Resets TWCR for next condition

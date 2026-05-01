@@ -18,7 +18,7 @@ void i2c_init()  {
 // Found an example of uart
 void uart_init(uint32_t baud) {
     // divider used for the baud rate clock, gets the speed for computer and arduino
-    uint16_t ubrrvalue = (F_CPU / (16 * baud) - 1);
+    uint16_t ubrr_value = (F_CPU / (16 * baud) - 1);
     UBRR0H = (uint8_t)(ubrr_value >> 8); // shifts 8 bits to the right, stores to high register 
     UBRR0L = (uint8_t)ubrr_value; // Stores ubrrvalue into the low register
 
@@ -48,7 +48,7 @@ void i2c_master_write(uint8_t addr, uint8_t data) {
     // Waiting for the TWINT Flag (hardware)
     while (!(TWCR & (1<<TWINT)));
     // Send address and write bit
-    if ((TWSR & 0xF8) != START) ERROR();
+    if ((TWSR & 0xF8) != TW_START) return;
     // Sets write mode
     TWDR = (addr << 1);
     // Clears TWINT bit and turns on the enable bit
@@ -56,7 +56,7 @@ void i2c_master_write(uint8_t addr, uint8_t data) {
     // waits for TWINT to be set (hardware)
     while (!(TWCR & (1<<TWINT)));
     // To determine if a device exists at that address
-    if ((TWSR & 0xF8) != MT_SLA_ACK) ERROR();
+    if ((TWSR & 0xF8) != TW_MT_SLA_ACK) return;
     // Loads data into TWDR register
     TWDR = data;
     // Clears TWINT register to start data transmission, moves the data
@@ -64,7 +64,7 @@ void i2c_master_write(uint8_t addr, uint8_t data) {
     // Waits for twint flag to be set 
     while (!(TWCR & (1<<TWINT)));
     // Checks value of TWSR Register, confirms data transfer
-    if ((TWSR & 0xF8)!= MT_DATA_ACK) ERROR();
+    if ((TWSR & 0xF8)!= TW_MT_DATA_ACK) return;
     // Stops communication by transmitting stop condition 
     TWCR = (1<<TWINT)|(1<<TWEN)|(1<<TWSTO);
 }
@@ -72,48 +72,48 @@ void i2c_master_write(uint8_t addr, uint8_t data) {
 uint8_t i2c_master_recieve(uint8_t addr) {
     // Data and checksum to recieve
     uint8_t data, checksum;
-    for (uint i = 0; i < MAX_RETRIES; i++) {
+    for (uint8_t i = 0; i < MAX_RETRIES; i++) {
         // Startup logic from i2c_master_write
         TWCR = (1<<TWINT)|(1<<TWSTA)|(1<<TWEN);
         while (!(TWCR & (1<<TWINT)));
-        if ((TWSR & 0xF8) != START) continue; // retries if this fails.
+        if ((TWSR & 0xF8) != TW_START) continue; // retries if this fails.
         
         // TWDR as read mode
         TWDR = (addr << 1) | 1;
         TWCR = (1<<TWINT) | (1<<TWEN);
         while (!(TWCR & (1<<TWINT)));
-        if ((TWSR & 0xF8) != MR_SLA_ACK) {
+        if ((TWSR & 0xF8) != TW_MR_SLA_ACK) {
             TWCR = (1<<TWINT) | (1<<TWEN) | (1<<TWSTO);
             _delay_ms(5);
             continue;
         }
 
         // turns on listening from the slave
-        TWCR = (1<<TWINT) | (1<<TWEN);
+        TWCR = (1<<TWINT) | (1<<TWEN) | (1<<TWEA);
         while (!(TWCR & (1<<TWINT)));
         // Changed to master reciever
-        if ((TWSR & 0xF8)!= MR_DATA_NACK) continue;
+        if ((TWSR & 0xF8)!= TW_MR_DATA_ACK) continue;
 
         data = TWDR;
 
         TWCR = (1<<TWINT) | (1<<TWEN);
         while (!(TWCR & (1<<TWINT)));
         // Changed to master reciever
-        if ((TWSR & 0xF8)!= MR_DATA_NACK) continue;
+        if ((TWSR & 0xF8)!= TW_MR_DATA_NACK) continue;
 
         checksum = TWDR;
 
         // Stops transmisson
         TWCR = (1<<TWINT)|(1<<TWEN)|(1<<TWSTO);
         
-        // Determines if checksum is correct 
-        if (validate_checksum(data) == checksum) {
-            return data;
-        }
+        return data;
+        // // Determines if checksum is correct 
+        // if (validate_checksum(data) == checksum) {
+        //     return data;
+        // }
 
         _delay_ms(5);
     }
-    ERROR();
     return 0;
 }
 
@@ -121,16 +121,18 @@ int main() {
     i2c_init();
     uart_init(9600); // Enabled for serial communication, same as arduino ide script
     uint8_t sensor_data;
+    uart_putchar('A');
 
     while(1) {
+        uart_putchar('S');
         i2c_master_write(0x18, 0x24);
-
+        uart_putchar('I');
         _delay_ms(10);
 
         sensor_data = i2c_master_recieve(0x18);
-
+        uart_putchar('C');
         uart_putchar(sensor_data);
-
+        uart_putchar('M');
         // going to write functionality to process the data
 
         _delay_ms(500); // - to poll every half second
