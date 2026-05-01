@@ -106,11 +106,11 @@ uint8_t i2c_master_recieve(uint8_t addr) {
         // Stops transmisson
         TWCR = (1<<TWINT)|(1<<TWEN)|(1<<TWSTO);
         
-        return data;
-        // // Determines if checksum is correct 
-        // if (validate_checksum(data) == checksum) {
-        //     return data;
-        // }
+        
+        // Determines if checksum is correct 
+        if (validate_checksum(data) == checksum) {
+            return data;
+        }
 
         _delay_ms(5);
     }
@@ -121,18 +121,18 @@ int main() {
     i2c_init();
     uart_init(9600); // Enabled for serial communication, same as arduino ide script
     uint8_t sensor_data;
-    uart_putchar('A');
+    uart_putchar('I');
 
     while(1) {
-        uart_putchar('S');
+        //uart_putchar('S');
         i2c_master_write(0x18, 0x24);
-        uart_putchar('I');
+        //uart_putchar('I');
         _delay_ms(10);
 
         sensor_data = i2c_master_recieve(0x18);
-        uart_putchar('C');
+        //uart_putchar('C');
         uart_putchar(sensor_data);
-        uart_putchar('M');
+        //uart_putchar('M');
         // going to write functionality to process the data
 
         _delay_ms(500); // - to poll every half second

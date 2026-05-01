@@ -1,1 +1,10 @@
 led.o\nled.elf\nled.hex
+Makefile
+slave.elf
+slave.hex
+slave.o
+data-transfer.o
+master.elf
+master.hex
+Makefile_slave
+*Makefile_master
