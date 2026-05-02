@@ -8,3 +8,4 @@ master.elf
 master.hex
 Makefile_slave
 *Makefile_master
+.venv

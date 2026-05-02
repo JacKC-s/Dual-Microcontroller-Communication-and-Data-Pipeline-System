@@ -135,6 +135,6 @@ int main() {
         //uart_putchar('M');
         // going to write functionality to process the data
 
-        _delay_ms(500); // - to poll every half second
+        _delay_ms(10); // - to poll every half second
     }
 }
