@@ -10,7 +10,7 @@ MAX_ENTRIES = 50
 ser = serial.Serial(PORT, BAUD, timeout=1)
 ser.reset_input_buffer()
 
-# Deque the last MAX_ENTRIES entries
+# Deque the last {MAX_ENTRIES} entries
 data_history = collections.deque([0]*MAX_ENTRIES, maxlen=MAX_ENTRIES)
 
 # Initializing the plot
